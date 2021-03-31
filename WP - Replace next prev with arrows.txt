@@ -1,0 +1,25 @@
+If Store Front Theme >> storefront-template-functions.php change this
+
+if ( ! function_exists( 'storefront_paging_nav' ) ) {
+	/**
+	 * Display navigation to next/previous set of posts when applicable.
+	 */
+	function storefront_paging_nav() {
+		global $wp_query;
+
+		$args = array(
+			'type'      => 'list',
+            'next_text' => '<span class="dashicons dashicons-arrow-right-alt2"></span>',
+            'prev_text' => '<span class="dashicons dashicons-arrow-left-alt2"></span>',
+//			'next_text' => _x( 'Next', 'Next post', 'storefront' ),
+//			'prev_text' => _x( 'Previous', 'Previous post', 'storefront' ),
+		);
+
+		the_posts_pagination( $args );
+	}
+}
+
+
+To use dashicons  >> class-storefront.php or functions.php add
+
+wp_enqueue_style( 'dashicons' );
