@@ -1,0 +1,27 @@
+//Add in functions.php
+if( function_exists('acf_add_options_page') ) {
+
+    $parent = acf_add_options_page();
+
+    acf_add_options_sub_page([
+        'page_title' => "Global Options",
+        'menu_title' => __("Global Options", ''),
+        'menu_slug' => "global-options",
+        'post_id' => 'options',
+        'parent' => $parent['menu_slug'],
+    ]);
+
+    $langs = pll_languages_list(array('slug'));
+
+    foreach ($langs as $lang) {
+
+        acf_add_options_sub_page([
+            'page_title' => "Options $lang",
+            'menu_title' => __("Options $lang", ''),
+            'menu_slug' => "option-$lang",
+            'post_id' => "option-$lang",
+            'parent' => $parent['menu_slug'],
+        ]);
+
+    }
+}
