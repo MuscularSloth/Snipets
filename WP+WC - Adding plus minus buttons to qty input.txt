@@ -1,3 +1,5 @@
+Add in functions.php
+
 //adding plus and minus buttons to quantity
 add_action('woocommerce_before_add_to_cart_quantity', function () {
     echo '<div class="product-page__info-block__info__form__qty-block"><span class="product-page__info-block__info__form__qty-block__minus"><svg width="15" height="3" viewBox="0 0 15 3" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M14.375 0H0.625C0.279687 0 0 0.279687 0 0.625V1.875C0 2.22031 0.279687 2.5 0.625 2.5H14.375C14.7203 2.5 15 2.22031 15 1.875V0.625C15 0.279687 14.7203 0 14.375 0Z" fill="currentColor"/></svg></span>';
@@ -6,6 +8,42 @@ add_action('woocommerce_before_add_to_cart_quantity', function () {
 add_action('woocommerce_after_add_to_cart_quantity', function () {
     echo '<span class="product-page__info-block__info__form__qty-block__plus"><svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M14.375 6.25H8.75V0.625C8.75 0.279687 8.47031 0 8.125 0H6.875C6.52969 0 6.25 0.279687 6.25 0.625V6.25H0.625C0.279687 6.25 0 6.52969 0 6.875V8.125C0 8.47031 0.279687 8.75 0.625 8.75H6.25V14.375C6.25 14.7203 6.52969 15 6.875 15H8.125C8.47031 15 8.75 14.7203 8.75 14.375V8.75H14.375C14.7203 8.75 15 8.47031 15 8.125V6.875C15 6.52969 14.7203 6.25 14.375 6.25Z" fill="currentColor"/></svg></span></div>';
 }, 99);
+
+
+Add in JS file
+
+jQuery( document.body ).on( 'click', '.product-page__info-block__info__form__qty-block__minus, .product-page__info-block__info__form__qty-block__plus', function(e) {
+        // Get current quantity values
+        var qty = jQuery( this ).closest( '.product-page__info-block__info__form__qty-block' ).find( '.qty');
+        var val = parseFloat(qty.val());
+        var max = parseFloat(qty.attr( 'max' ));
+        var min = parseFloat(qty.attr( 'min' ));
+        var step = parseFloat(qty.attr( 'step' ));
+
+        // Change the value if plus or minus
+        if ( jQuery( this ).is( '.product-page__info-block__info__form__qty-block__plus' ) ) {
+            if ( max && ( max <= val ) ) {
+                qty.val( max );
+            }
+            else {
+                qty.val( val + step );
+            }
+        }
+        else {
+            if ( min && ( min >= val ) ) {
+                qty.val( min );
+            }
+            else if ( val > 1 ) {
+                qty.val( val - step );
+            }
+        }
+        setTimeout(() => {
+            qty.trigger("change");
+            jQuery("[name='update_cart']").trigger("click");
+        }, 300);
+
+    });
+
 
 
 or instead SVG use dashicons
