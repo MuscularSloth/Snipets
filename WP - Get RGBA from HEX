@@ -1,0 +1,7 @@
+//Add this to functions.php
+function get_rgba_from_hex($hex, $opacity = 0.2) {
+    $style = 'rgba(';
+    $rgb = sscanf($hex, "#%02x%02x%02x");
+    $style .= implode(',', $rgb) . ','. $opacity .')';
+    return $style;
+}
