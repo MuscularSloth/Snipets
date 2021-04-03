@@ -1,0 +1,355 @@
+Расширим функционал Woocommerce выбором при оформлении заказа: юр. или физ. лицо. 
+Естественно данный выбор будет влиять на множество аспектов самого процесса заказа и прочих функций WC.
+
+Создание переключателя и полей для организации
+Начинаем с того, что создаем поле с переключателем юр. или физ. лица
+
+// Добавление выбора физ. или юр. лицо
+add_action( 'woocommerce_before_checkout_billing_form', 'organisation_checkout_field' );
+function organisation_checkout_field( $checkout ) {
+    echo '<div id="organisation_checkout_field">';
+    woocommerce_form_field( 'organisation', array(
+        'type'    => 'radio',
+        'class'   => array('form-row-wide'),
+        'label'   =>  '',
+	    'options' => array(
+			'private_person' => 'Частное лицо',
+			'company' => 'Организация'
+		)
+        ), $checkout->get_value( 'organisation' ));
+    echo '</div>';
+}
+
+Создаем поля, которые нужны при выборе юридического лица:
+add_action( 'woocommerce_legal_face', 'my_custom_checkout_field_legal_face' );
+function my_custom_checkout_field_legal_face( $checkout ) {
+	$current_user = wp_get_current_user();
+	$user_id = $current_user->ID;
+
+    echo '<div class="woocommerce-organisation-fields__field-wrapper"><h3>Реквизиты организации</h3>';
+
+    woocommerce_form_field( 'organisation_name', array(
+		'required'      => true,
+        'type'          => 'text',
+        'class'         => array('my-field-class form-row-wide'),
+        'placeholder'   => __('Наименование'),
+    ), get_user_meta( $user_id, 'organisation_name', true ));
+	
+	woocommerce_form_field( 'organisation_address', array(
+		'required'      => true,
+        'type'          => 'text',
+        'class'         => array('my-field-class form-row-wide'),
+        'placeholder'   => __('Адрес организации'),
+    ), get_user_meta( $user_id, 'organisation_address', true ));			
+	
+	woocommerce_form_field( 'organisation_inn', array(
+		'required'      => true,
+        'type'          => 'text',
+        'class'         => array('my-field-class form-row-first'),
+        'placeholder'   => __('ИНН'),
+    ), get_user_meta( $user_id, 'organisation_inn', true ));
+	
+	woocommerce_form_field( 'organisation_kpp', array(
+		'required'      => true,
+        'type'          => 'text',
+        'class'         => array('my-field-class form-row-last'),
+        'placeholder'   => __('КПП'),
+    ), get_user_meta( $user_id, 'organisation_kpp', true ));
+	
+	woocommerce_form_field( 'organisation_checking_account', array(
+		'required'      => true,
+        'type'          => 'text',
+        'class'         => array('my-field-class form-row-wide'),
+        'placeholder'   => __('Расчетный счет'),
+    ), get_user_meta( $user_id, 'organisation_checking_account', true ));
+	
+	woocommerce_form_field( 'organisation_bank', array(
+		'required'      => true,
+        'type'          => 'text',
+        'class'         => array('my-field-class form-row-wide'),
+        'placeholder'   => __('Банк'),
+    ), get_user_meta( $user_id, 'organisation_bank', true ));
+
+    echo '</div>';
+}
+
+‘required’ => true — обязательные для заполнения поля. В данной функции прописано автозаполнение полей если есть их значение.
+
+Чтобы вставить поля Реквизиты нужно прописать экшн в шаблоне woocommerce/checkout/form-checkout.php 
+после экшена woocommerce_checkout_billing (к нему самому привязаться не мог, т.к. тога поля выводятся ниже комментария)
+
+<?php do_action( 'woocommerce_legal_face' ); ?>
+
+Прописываем скрипты: один из пунктов выбора по умолчанию и скрытие группы полей Реквизиты, если выбран вариант физ. лицо
+
+// Включить радио кнопку изначально
+jQuery(function() {
+    var $radios = jQuery('input:radio[name=organisation]');
+    if($radios.is(':checked') === false) {
+        $radios.filter('[value="private_person"]').prop('checked', true);
+    }
+});
+
+// Скрытие реквизитов
+jQuery(document).ready(function($){
+	$('.woocommerce-organisation-fields__field-wrapper').hide();
+
+	$("input[name=organisation]:radio").click(function () {
+		if ($('input[name=organisation]:checked').val() == "private_person") {
+			$('.woocommerce-organisation-fields__field-wrapper').hide();
+		} else if ($('input[name=organisation]:checked').val() == "company") {
+			$('.woocommerce-organisation-fields__field-wrapper').show();
+		}
+	});
+});
+
+Функция верификации (заполнены ли обязательные поля). Особенностью функции является вывод предупреждения только в случае если выбрано юр. лицо:
+
+add_action('woocommerce_checkout_process', 'my_custom_checkout_field_process');
+function my_custom_checkout_field_process() {
+	$radioVal = $_POST["organisation"];
+
+	if($radioVal == "company") {
+		if ( ! $_POST['organisation_name'] ) wc_add_notice( __( '<strong>Наименование организации</strong> является обязательным полем.' ), 'error' );
+		if ( ! $_POST['organisation_address'] ) wc_add_notice( __( '<strong>Адрес организации</strong> является обязательным полем.' ), 'error' );
+		if ( ! $_POST['organisation_inn'] ) wc_add_notice( __( '<strong>ИНН</strong> является обязательным полем.' ), 'error' );
+		if ( ! $_POST['organisation_kpp'] ) wc_add_notice( __( '<strong>КПП</strong> является обязательным полем.' ), 'error' );
+		if ( ! $_POST['organisation_checking_account'] ) wc_add_notice( __( '<strong>Расчетный счет</strong> является обязательным полем.' ), 'error' );
+		if ( ! $_POST['organisation_bank'] ) wc_add_notice( __( '<strong>Банк</strong> является обязательным полем.' ), 'error' );	
+	}
+}
+
+Функция сохранения полей. Причем данные поля сохраняем не как order meta, а как user meta.
+
+// Update user meta with field value
+ 
+add_action( 'woocommerce_checkout_update_order_meta', 'my_custom_checkout_field_update_order_meta' );
+function my_custom_checkout_field_update_order_meta() {
+	$current_user = wp_get_current_user();
+	$user_id = $current_user->ID;
+
+$radioVal = $_POST["organisation"];
+if($radioVal == "company") { update_user_meta( $user_id, 'company', 'on' ); } else { delete_user_meta( $user_id, 'company' ); }
+
+    if ( ! empty( $_POST['organisation_name'] ) ) { update_user_meta( $user_id, 'organisation_name', sanitize_text_field( $_POST['organisation_name'] ) ); }
+    if ( ! empty( $_POST['organisation_address'] ) ) { update_user_meta( $user_id, 'organisation_address', sanitize_text_field( $_POST['organisation_address'] ) ); }
+    if ( ! empty( $_POST['organisation_inn'] ) ) { update_user_meta( $user_id, 'organisation_inn', sanitize_text_field( $_POST['organisation_inn'] ) ); }
+    if ( ! empty( $_POST['organisation_kpp'] ) ) { update_user_meta( $user_id, 'organisation_kpp', sanitize_text_field( $_POST['organisation_kpp'] ) ); }
+    if ( ! empty( $_POST['organisation_checking_account'] ) ) { update_user_meta( $user_id, 'organisation_checking_account', sanitize_text_field( $_POST['organisation_checking_account'] ) ); }
+    if ( ! empty( $_POST['organisation_bank'] ) ) { update_user_meta( $user_id, 'organisation_bank', sanitize_text_field( $_POST['organisation_bank'] ) ); }
+}
+
+Также эта функция сохраняет значение поля company (ON) если выбрано юр. лицо и удаляет 
+мета поле company если выбрано физ. лицо. Далее поле company пригодится для проверки при выводе реквизитов.
+
+
+Вывод полей в различных шаблонах
+
+Выводим поля группы Реквизиты в бланке заказа:
+// Вывести реквизиты в бланке заказа
+ 
+add_action( 'woocommerce_order_details_after_customer_details', 'organisation_checkout_field_echo_in_order' );
+function organisation_checkout_field_echo_in_order() {
+	$current_user = wp_get_current_user();
+	$user_id = $current_user->ID;
+	$user_id_company = get_user_meta( $user_id, 'company', 'on' );
+	if($user_id_company) {
+		echo '<h2>Реквизиты компании</h2>';
+		echo 'Наименование: '.get_user_meta( $user_id, 'organisation_name', true ).'<br>';
+		echo 'Адрес: '.get_user_meta( $user_id, 'organisation_address', true ).'<br>';
+		echo 'ИНН: '.get_user_meta( $user_id, 'organisation_inn', true ).'<br>';
+		echo 'КПП: '.get_user_meta( $user_id, 'organisation_kpp', true ).'<br>';
+		echo 'Расч. счет: '.get_user_meta( $user_id, 'organisation_checking_account', true ).'<br>';
+		echo 'Банк: '.get_user_meta( $user_id, 'organisation_bank', true );	
+	}
+}
+
+Если необходимо вывести в Личном кабинете во вкладке Адреса, то необходимо прописать вышеописанную функцию к новому хуку:
+
+add_action( 'woocommerce_insert_organisation_details', 'organisation_checkout_field_echo_in_order' );
+
+А в шаблоне woocommerce/myaccount/my-address.php прописать вывод этого хука (после foreach):
+
+<?php do_action( 'woocommerce_insert_organisation_details' ); ?>
+
+Вывести реквизиты в адмике (в заказе):
+
+add_action( 'woocommerce_admin_order_data_after_shipping_address', 'organisation_checkout_field_echo_in_admin_order', 10 );
+function organisation_checkout_field_echo_in_admin_order() {
+	$current_user = wp_get_current_user();
+	$user_id = $current_user->ID;
+	$user_id_company = get_user_meta( $user_id, 'company', 'on' );
+	if($user_id_company) {
+		echo '</div></div><div class="clear"></div>';
+		echo '<div class="order_data_column_container"><div class="order_data_column_wide">';
+		echo '<h3>Реквизиты компании</h3>';
+		echo 'Наименование: '.get_user_meta( $user_id, 'organisation_name', true ).'<br>';
+		echo 'Адрес: '.get_user_meta( $user_id, 'organisation_address', true ).'<br>';
+		echo 'ИНН: '.get_user_meta( $user_id, 'organisation_inn', true ).'<br>';
+		echo 'КПП: '.get_user_meta( $user_id, 'organisation_kpp', true ).'<br>';
+		echo 'Расч. счет: '.get_user_meta( $user_id, 'organisation_checking_account', true ).'<br>';
+		echo 'Банк: '.get_user_meta( $user_id, 'organisation_bank', true );
+	}
+}
+
+Вывести реквизиты в бланке писем
+add_action( 'woocommerce_email_customer_details', 'woocommerce_email_after_order_table_func', 50 );
+function woocommerce_email_after_order_table_func() {
+	$current_user = wp_get_current_user();
+	$user_id = $current_user->ID;
+	$user_id_company = get_user_meta( $user_id, 'company', 'on' );
+	if($user_id_company) {
+	?>
+
+	<h3>Реквизиты компании</h3>
+	<table>
+		<tr>
+			<td><strong>Наименование: </strong></td>
+			<td><?php echo wptexturize( get_user_meta( $user_id, 'organisation_name', true ) ); ?></td>
+		</tr>
+		<tr>
+			<td><strong>Адрес: </strong></td>
+			<td><?php echo wptexturize( get_user_meta( $order_id, 'organisation_address', true ) ); ?></td>
+		</tr>
+		<tr>
+			<td><strong>ИНН: </strong></td>
+			<td><?php echo wptexturize( get_user_meta( $user_id, 'organisation_inn', true ) ); ?></td>
+		</tr>
+		<tr>
+			<td><strong>КПП: </strong></td>
+			<td><?php echo wptexturize( get_user_meta( $user_id, 'organisation_kpp', true ) ); ?></td>
+		</tr>
+		<tr>
+			<td><strong>Расч. счет: </strong></td>
+			<td><?php echo wptexturize( get_user_meta( $order_id, 'organisation_checking_account', true ) ); ?></td>
+		</tr>
+		<tr>
+			<td><strong>Банк: </strong></td>
+			<td><?php echo wptexturize( get_user_meta( $user_id, 'organisation_bank', true ) ); ?></td>
+		</tr>		
+	</table>
+
+	<?php
+	}
+}
+
+woocommerce_email_after_order_table — будут выводиться перед адресами
+
+woocommerce_email_customer_details — будут выводиться после адресов
+
+
+
+Изменить набор методов платежей в зависимости от формы плательщика
+
+add_filter( 'woocommerce_available_payment_gateways', 'kvk_field_cheque_payment_method', 20, 1);
+function kvk_field_cheque_payment_method( $gateways ){
+if( !is_admin() ) {
+    foreach( $gateways as $gateway_id => $gateway ) {
+
+        if( WC()->session->get( 'is_company' ) ){
+            unset( $gateways['cod'] );
+        } else {
+			unset( $gateways['bacs'] );
+		}
+    }
+    return $gateways;
+}
+}
+
+// The WordPress Ajax PHP receiver
+add_action( 'wp_ajax_kvk_nummer', 'get_ajax_kvk_nummer' );
+add_action( 'wp_ajax_nopriv_kvk_nummer', 'get_ajax_kvk_nummer' );
+function get_ajax_kvk_nummer() {
+	
+    if ( $_POST['organisation'] == 'company' ){
+        WC()->session->set('is_company', '1');
+    } else {
+        WC()->session->set('is_company', '0');
+    }
+    die();
+}
+
+// The jQuery Ajax request
+add_action( 'wp_footer', 'checkout_kvk_fields_script' );
+function checkout_kvk_fields_script() {
+    // Only checkout page
+    if( is_checkout() && ! is_wc_endpoint_url() ):
+
+    // Remove "is_company" custom WC session on load
+    if( WC()->session->get('is_company') ){
+        WC()->session->__unset('is_company');
+    }
+    ?>
+    <script type="text/javascript">
+        jQuery( function($){
+            var a = 'input[name=organisation]';
+
+            // Ajax function
+            function checkKvkNummer( value ){
+                 $.ajax({
+                    type: 'POST',
+                    url: wc_checkout_params.ajax_url,
+                    data: {
+                        'action': 'kvk_nummer',
+						'organisation': $('input[name=organisation]:checked').val(),
+                        //'organisation': value != '' ? 1 : 0, // чредование значений для валидации text или включения checkbox
+                    },
+                    success: function (result) {
+                        $('body').trigger('update_checkout');
+                    }
+                });
+            }
+
+            // On start
+            checkKvkNummer($(a).val());
+
+            // On change event
+            $(a).change( function () {
+                checkKvkNummer($(this).val());
+            });
+        });
+    </script>
+    <?php
+    endif;
+};
+
+В данном случае при выборе физ. лица пропадает вариант оплаты банковским переводом, а при выборе юр. лица недоступен вариант оплаты наличными.
+
+ID стандартных и популярных методов оплаты:
+
+bacs — прямой банковский перевод
+cheque — чековые платежи
+cod — оплата при доставке
+paypal — PayPal
+
+
+Удалить стандартные поля банковского перевода
+
+По умолчанию у метода оплаты банковским переводом есть набор полей для заполнения (от магазина), скроем их если они не нужны.
+
+Убрать из шаблонов писем:
+// Отключить стандартные поля банковского перевода в шаблоне письма
+
+add_action( 'woocommerce_email_before_order_table', function(){
+    if ( ! class_exists( 'WC_Payment_Gateways' ) ) return;
+
+    $gateways = WC_Payment_Gateways::instance(); // gateway instance
+    $available_gateways = $gateways->get_available_payment_gateways();
+
+    if ( isset( $available_gateways['bacs'] ) )
+        remove_action( 'woocommerce_email_before_order_table', array( $available_gateways['bacs'], 'email_instructions' ), 10, 3 );
+}, 1 );
+
+Убрать из деталей заказа:
+
+// Отключить стандартные поля банковского перевода в шаблоне заказа
+
+add_action( 'init', 'remove_bacs_from_thank_you_page', 100 );
+function remove_bacs_from_thank_you_page() {
+	if ( ! function_exists( 'WC' ) ) { return; } // Bail, if we don't have WC function
+	$available_gateways = WC()->payment_gateways()->get_available_payment_gateways();
+	$gateway = isset( $available_gateways['bacs'] ) ? $available_gateways['bacs'] : false;
+	if ( false == $gateway ) { return; } // We won't do anything if the gateway is not available
+	
+	remove_action( 'woocommerce_thankyou_bacs', array( $gateway, 'thankyou_page' ) );
+}
