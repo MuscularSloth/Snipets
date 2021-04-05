@@ -1,1 +1,1 @@
-# Just set of useful Snipets mostly for Wordpress, Woocommerce
+# Just set of useful Snipets mostly for Wordpress and Woocommerce
