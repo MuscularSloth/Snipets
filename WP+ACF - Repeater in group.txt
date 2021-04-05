@@ -1,0 +1,23 @@
+ //outer repeater
+ <?php if( have_rows('office-data') ):
+  while( have_rows('office-data') ) : the_row();?>
+
+     //inner group field CONTACTS (we should initial group like a row)
+     <?php if( have_rows('contacts') ):
+      while( have_rows('contacts') ) : the_row(); ?>
+      
+       //inner repeater PHONES in group CONTACTS
+       <?php if( have_rows('phones') ): ?>
+         <?php while( have_rows('phones') ) : the_row(); ?>
+         
+              //field PHONE from nested repeater PHONES which is inside the group CONTACTS
+              <?= get_sub_field('phone'); ?>
+              
+         <?php endwhile;
+       endif;?>
+       
+       <?php endwhile;
+      endif;?>
+      
+ <?php endwhile;
+endif;?>
