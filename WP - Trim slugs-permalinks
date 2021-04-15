@@ -1,0 +1,30 @@
+/**
+ * Trim native slugs
+ */
+function pm_trim_native_slug($slug, $post_ID, $post_status, $post_type, $post_parent) {
+	global $wpdb;
+
+	$max_words = 5; // Limit the number of words to 5; This value can be changed.
+	$words = explode('-', $slug);
+
+	if(count($words) > $max_words) {
+		$slug = implode("-", array_slice($words, 0, $max_words));
+
+		// Make the slugs unique
+		$check_sql       = "SELECT post_name FROM $wpdb->posts WHERE post_name = %s AND ID != %d LIMIT 1";
+		$post_name_check = $wpdb->get_var($wpdb->prepare($check_sql, $slug, $post_ID));
+
+		if($post_name_check) {
+			$suffix = 2;
+			do {
+				$alt_post_name = _truncate_post_slug($slug, 200 - (strlen($suffix) + 1)) . "-$suffix";
+				$post_name_check = $wpdb->get_var($wpdb->prepare($check_sql, $alt_post_name, $post_type, $post_ID, $post_parent));
+				$suffix++;
+			} while ($post_name_check);
+			$slug = $alt_post_name;
+		}
+	}
+
+	return $slug;
+}
+add_filter('wp_unique_post_slug', 'pm_trim_native_slug', 99, 5);
