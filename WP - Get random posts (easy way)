@@ -1,0 +1,11 @@
+    $args = array(
+        'orderby' => 'rand',
+        'post_type' => 'recipes',
+        'numberposts'      => 4,
+    );
+    
+    $posts = get_posts($args);
+    
+    foreach ($posts as $post):
+        //bla bla bla
+    endforeach; 
