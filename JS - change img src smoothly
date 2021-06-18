@@ -1,0 +1,27 @@
+$( '.little-image' ).click(function (e){
+
+// 	imageToChange.attr('src', newSrc); // it works just fine but without animation at all
+
+    var sClickedImg = $( this ).find('img').attr('src');                                                //get (or set) src to new image
+		var blockImage = $( '.big-image-wrapper' );                                                         //get image wrapper, should be relative
+    var imageToChange = blockImage.find( 'img' );                                                       //get image to change
+		var clonedEle = imageToChange.clone();                                                              //clone it
+		var matrixRegex = /matrix\((-?\d*\.?\d+),\s*0,\s*0,\s*(-?\d*\.?\d+),\s*0,\s*0\)/,  
+    matches = imageToChange.css('-webkit-transform').match(matrixRegex);                                //get current original image scale (if needed)
+		
+	  imageToChange = imageToChange.length > 1 ? imageToChange[0] : imageToChange;                        //prevent duplicates when user clicks before animation ends then add original  
+ 		
+    imageToChange.css({"opacity":"", "position":"","top":"", "left":"","z-index":""})                   //clear css
+                 .css({"transform":"scale("+matches[1]+")","transition-duration": "unset"});            //set scale and reset transition (if needed)
+		clonedEle.css({position:"absolute","top":"0", "left":"0","z-index":"1"}).attr("src",sClickedImg);   //set style and new src img to clone
+		imageToChange.css({position:"absolute", "top":"0", "left":"0", "z-index":"2"});                     //set style and new src img to original
+		
+	  blockImage.empty().append(imageToChange);                                                           //clear wrapper to prevent duplicates when user clicks before animation ends then add original
+ 		imageToChange.after(clonedEle);                                                                     //add clone behind
+    
+		imageToChange.fadeTo(2000, 0 , function(){                                                          // do some magic :) (2000 - animation duration, 0 - final opacity of original)
+			imageToChange.remove();                                                                           //remove original
+      clonedEle.css({"opacity":"", "position":"","top":"", "left":"","z-index":""});                    //clear clone css
+		});
+			
+});
