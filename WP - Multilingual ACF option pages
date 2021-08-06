@@ -11,7 +11,22 @@ if( function_exists('acf_add_options_page') ) {
         'parent' => $parent['menu_slug'],
     ]);
 
-    $langs = pll_languages_list(array('slug'));
+
+//for WPML
+    if (function_exists('icl_get_languages')) {
+        //get list of used languages from WPML
+        $langsList = icl_get_languages('skip_missing=N&orderby=KEY&order=DIR&link_empty_to=str');
+        $langs = [];
+
+        foreach ($langsList as $lang){
+            $langs[] = $lang['code'];
+        }
+
+    }
+    
+ //for polylang   
+    
+   // $langs = pll_languages_list(array('slug'));
 
     foreach ($langs as $lang) {
 
