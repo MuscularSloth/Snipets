@@ -1,3 +1,5 @@
+<?php 
+
 if ( ! function_exists( 'mktech_get_featured_product_ids' ) ) {
     /* return number[] */
 
@@ -18,3 +20,5 @@ if ( ! function_exists( 'mktech_get_featured_product_ids' ) ) {
         return $arrayOfIds;
     }
 }
+
+?>
